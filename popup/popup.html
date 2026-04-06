@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamRatings Settings</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 300px;
+      padding: 16px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      background: #141414;
+      color: #e5e5e5;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #333;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e50914; /* Netflix red */
+      letter-spacing: 0.5px;
+    }
+
+    .star {
+      color: #f5c518;
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: #222;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 12px;
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #f5c518;
+    }
+
+    button {
+      background: #f5c518;
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 12px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 11px;
+      min-height: 16px;
+      font-weight: 600;
+    }
+
+    .status.success { color: #21d07a; }
+    .status.error   { color: #db2360; }
+    .status.loading { color: #aaa; }
+
+    .hint {
+      margin-top: 14px;
+      font-size: 10px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .hint a {
+      color: #f5c518;
+      text-decoration: none;
+    }
+
+    .hint a:hover {
+      text-decoration: underline;
+    }
+
+    .threshold-section {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #333;
+    }
+
+    .threshold-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .threshold-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f5c518;
+      min-width: 32px;
+      text-align: right;
+    }
+
+    .threshold-off {
+      color: #666;
+      font-size: 11px;
+    }
+
+    .slider-container {
+      position: relative;
+      padding: 4px 0;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(to right, #b41e2d, #a08c14, #178750);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #f5c518;
+      border: 2px solid #111;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 9px;
+      color: #555;
+    }
+
+    .threshold-desc {
+      font-size: 10px;
+      color: #777;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .cache-section {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #333;
+    }
+
+    .cache-section p {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .clear-btn {
+      background: #333;
+      color: #ccc;
+      font-size: 11px;
+      padding: 5px 10px;
+    }
+
+    .clear-btn:hover {
+      background: #444;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="star">★</span>
+    <h1>StreamRatings</h1>
+  </header>
+
+  <label for="api-key-input">OMDb API Key</label>
+  <div class="input-row">
+    <input
+      type="text"
+      id="api-key-input"
+      placeholder="e.g. a1b2c3d4"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <button id="save-btn">Save</button>
+  </div>
+  <div class="status" id="status-msg"></div>
+
+  <p class="hint">
+    Get your free key at
+    <a href="https://www.omdbapi.com/apikey.aspx" target="_blank">omdbapi.com</a>
+    (1,000 requests/day free).
+  </p>
+
+  <div class="threshold-section">
+    <div class="threshold-header">
+      <label for="threshold-slider">Grey-out below IMDb</label>
+      <span class="threshold-value" id="threshold-display"><span class="threshold-off">OFF</span></span>
+    </div>
+    <div class="slider-container">
+      <input type="range" id="threshold-slider" min="0" max="9" step="0.5" value="0" />
+      <div class="slider-labels">
+        <span>OFF</span>
+        <span>3</span>
+        <span>5</span>
+        <span>7</span>
+        <span>9</span>
+      </div>
+    </div>
+    <p class="threshold-desc">Movies &amp; shows rated below this threshold will appear greyed out on Netflix.</p>
+  </div>
+
+  <div class="cache-section">
+    <p>Ratings are cached for 7 days to save API calls.</p>
+    <button class="clear-btn" id="clear-cache-btn">Clear Rating Cache</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

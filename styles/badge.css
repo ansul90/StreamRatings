@@ -1,0 +1,199 @@
+/* StreamRatings — Badge & Tooltip Styles
+ *
+ * All classes are prefixed with "sr-" to avoid collisions with Netflix's CSS.
+ * Badges are positioned absolutely in the bottom-right corner of each card.
+ */
+
+/* ── Wrapper ─────────────────────────────────────────────────────────────────── */
+
+.sr-badge-wrapper {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  z-index: 9999;
+  pointer-events: all;
+}
+
+/* ── Clickable link wrapper around each badge ───────────────────────────────── */
+
+.sr-badge-link {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  position: relative;
+}
+
+.sr-badge-link:hover {
+  opacity: 1 !important;
+}
+
+.sr-badge-link:hover .sr-badge {
+  opacity: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+/* ── Base badge ─────────────────────────────────────────────────────────────── */
+
+.sr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  opacity: 0.92;
+}
+
+/* ── IMDB badge ─────────────────────────────────────────────────────────────── */
+
+.sr-logo-imdb {
+  background-color: #f5c518;
+  color: #000;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 1px 3px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+.sr-imdb .sr-score {
+  color: #fff;
+}
+
+/* ── Color variants ─────────────────────────────────────────────────────────── */
+
+.sr-green {
+  background-color: rgba(23, 135, 80, 0.9);
+}
+
+.sr-yellow {
+  background-color: rgba(160, 140, 20, 0.9);
+}
+
+.sr-red {
+  background-color: rgba(180, 30, 45, 0.9);
+}
+
+.sr-na {
+  background-color: rgba(80, 80, 80, 0.85);
+}
+
+/* ── Hover Tooltip — compact pill ───────────────────────────────────────────── */
+
+.sr-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 7px);
+  right: 0;
+  width: max-content;
+  background: rgba(15, 15, 20, 0.93);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 9px;
+  z-index: 10001;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  animation: sr-fadein 0.12s ease;
+}
+
+@keyframes sr-fadein {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sr-tooltip::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background: rgba(15, 15, 20, 0.93);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transform: rotate(45deg);
+}
+
+.sr-badge-link-imdb:hover .sr-tooltip {
+  display: block;
+}
+
+.sr-tip-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.4;
+}
+
+.sr-tip-stars {
+  gap: 2px;
+  margin-bottom: 3px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sr-tip-score {
+  color: #f5c518;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 5px;
+}
+
+.sr-tip-votes {
+  color: #aaa;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sr-tip-rt {
+  color: #e5e5e5;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ── Star Ratings ──────────────────────────────────────────────────────────── */
+
+.sr-star {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.sr-star-full {
+  color: #f5c518;
+}
+
+.sr-star-half {
+  color: #f5c518;
+  opacity: 0.5;
+}
+
+.sr-star-empty {
+  color: #444;
+}
+
+/* ── Grey-out (below threshold) ────────────────────────────────────────────── */
+
+.sr-greyed-out {
+  filter: grayscale(85%) brightness(0.5);
+  opacity: 0.45;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.sr-greyed-out:hover {
+  filter: grayscale(30%) brightness(0.8);
+  opacity: 0.75;
+}
