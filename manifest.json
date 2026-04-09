@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "StreamRatings",
   "version": "1.0.0",
-  "description": "Displays IMDB and Rotten Tomatoes ratings directly on Netflix and Prime Video movie/show cards.",
+  "description": "Displays IMDB and Rotten Tomatoes ratings directly on Netflix, Prime Video, Hotstar, and SonyLIV movie/show cards.",
   "permissions": [
     "storage",
     "tabs"
@@ -10,6 +10,8 @@
   "host_permissions": [
     "https://www.netflix.com/*",
     "https://www.primevideo.com/*",
+    "https://www.hotstar.com/*",
+    "https://www.sonyliv.com/*",
     "https://www.omdbapi.com/*",
     "https://www.rottentomatoes.com/*"
   ],
@@ -26,6 +28,18 @@
     {
       "matches": ["https://www.primevideo.com/*"],
       "js": ["content/primevideo.js"],
+      "css": ["styles/badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.hotstar.com/*"],
+      "js": ["content/hotstar.js"],
+      "css": ["styles/badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.sonyliv.com/*"],
+      "js": ["content/sonyliv.js"],
       "css": ["styles/badge.css"],
       "run_at": "document_idle"
     }

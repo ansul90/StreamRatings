@@ -115,7 +115,10 @@ async function fetchAndInjectRating(card, title, year) {
 
   if (!data) return;
 
-  card.setAttribute(RATING_DATA_ATTR, data.imdbRating || "N/A");
+  const rating = data.imdbRating;
+  if (!rating || rating === "N/A") return;
+
+  card.setAttribute(RATING_DATA_ATTR, rating);
 
   injectBadges(card, data, title);
   applyThresholdToCard(card);

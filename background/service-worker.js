@@ -399,7 +399,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === "THRESHOLD_CHANGED") {
-    chrome.tabs.query({ url: ["https://www.netflix.com/*", "https://www.primevideo.com/*"] }, (tabs) => {
+    chrome.tabs.query({
+      url: [
+        "https://www.netflix.com/*",
+        "https://www.primevideo.com/*",
+        "https://www.hotstar.com/*",
+        "https://www.sonyliv.com/*",
+      ],
+    }, (tabs) => {
       for (const tab of tabs) {
         chrome.tabs.sendMessage(tab.id, {
           type: "APPLY_THRESHOLD",

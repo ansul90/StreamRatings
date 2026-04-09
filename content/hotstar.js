@@ -1,31 +1,37 @@
 /**
- * StreamRatings — Prime Video Content Script
+ * StreamRatings — Hotstar Content Script
  *
  * Responsibilities:
- *  - Observe Prime Video's dynamically rendered DOM for movie/show cards
+ *  - Observe Hotstar's dynamically rendered DOM for movie/show cards
  *  - Extract titles from cards
  *  - Request ratings from the background service worker
  *  - Inject color-coded IMDb badge with hover tooltip onto each card
  *  - Grey-out cards below a user-defined IMDb rating threshold
  *
- * Prime Video renders cards lazily in horizontal carousels, so we use a
- * MutationObserver to catch new cards as they are added to the DOM.
+ * Hotstar is a React SPA — navigating between pages does not reload the
+ * document. A second MutationObserver watches for URL changes and re-runs
+ * card discovery after a short delay to let the new content render.
  *
- * Prime Video's DOM is less stable than Netflix's — class names are often
- * obfuscated and change between deployments. We use multiple fallback
- * selectors and broad attribute-based queries to stay resilient.
+ * Hotstar's data-testid attributes are more stable than raw class names, so
+ * we prefer those selectors; multiple class-based fallbacks keep things
+ * working if testids are absent.
  */
 
 // ── Selectors ─────────────────────────────────────────────────────────────────
-// Prime Video uses various card structures. We try multiple selectors.
+// Priority order: most specific / most reliable first.
 
 const CARD_SELECTORS = [
-  "[data-testid='card']",
-  "[data-testid='title-card']",
-  ".tst-title-card",
-  ".av-hover-wrapper",
-  "li article",
-  "[data-card-title]",
+  "[data-testid='tray-card-default']",
+  "[data-testid='grid-item']",
+  "[data-testid='list-item']",
+  "[data-testid='content-card']",
+  "[data-testid='item-container']",
+  "a[href*='/in/movies/']",
+  "a[href*='/in/tv/']",
+  "a[href*='/in/shows/']",
+  ".tray-vertical-card",
+  ".content-card",
+  ".poster-container",
 ];
 
 const BADGE_ATTR = "data-sr-injected";
@@ -48,7 +54,7 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 });
 
-// ── MutationObserver Setup ────────────────────────────────────────────────────
+// ── MutationObserver — DOM changes ────────────────────────────────────────────
 
 let observerDebounceTimer = null;
 
@@ -62,13 +68,29 @@ observer.observe(document.body, {
   subtree: true,
 });
 
+// ── MutationObserver — SPA URL changes ───────────────────────────────────────
+// Hotstar navigates without a full page reload. Watch for href changes and
+// re-process cards once the new page's content has had time to render.
+
+let lastHref = location.href;
+
+const locationObserver = new MutationObserver(() => {
+  if (location.href !== lastHref) {
+    lastHref = location.href;
+    setTimeout(processNewCards, 1500);
+  }
+});
+
+locationObserver.observe(document.body, { subtree: true, childList: true });
+
 processNewCards();
 
 // ── Card Discovery ────────────────────────────────────────────────────────────
 
 /**
- * Finds all title card elements on the page using multiple selector strategies.
- * Prime Video's DOM changes frequently, so we cast a wide net.
+ * Returns all card elements found on the page.
+ * Tries each selector in turn; uses the first one that yields results.
+ * Falls back to any anchor/container that wraps a poster image.
  */
 function findCards() {
   for (const selector of CARD_SELECTORS) {
@@ -76,12 +98,15 @@ function findCards() {
     if (cards.length > 0) return cards;
   }
 
-  // Broad fallback: any element that contains both a link and a poster image
-  // and looks like a card (has an img with alt text inside a link).
+  // Broad fallback: any element containing a poster image inside a link.
   const allImages = document.querySelectorAll("a img[alt]");
   const cardSet = new Set();
   for (const img of allImages) {
-    const card = img.closest("article") || img.closest("li") || img.parentElement?.parentElement;
+    const card =
+      img.closest("[data-testid]") ||
+      img.closest("article") ||
+      img.closest("li") ||
+      img.parentElement?.parentElement;
     if (card) cardSet.add(card);
   }
   return cardSet;
@@ -106,22 +131,43 @@ function processNewCards() {
 // ── Title Extraction ──────────────────────────────────────────────────────────
 
 /**
- * Extracts the title from a Prime Video card using multiple strategies:
- *  1. data-card-title attribute (some PV layouts)
- *  2. aria-label on the anchor link
- *  3. img alt text on the poster image
- *  4. Visible text heading inside the card
+ * Extracts the title from a Hotstar card using multiple strategies:
+ *  1. [data-testid="action"] aria-label — format: "Title, Show type"
+ *  2. [data-testid="title"] / [data-testid="content-title"] text content
+ *  3. aria-label on the card's anchor link (split on comma)
+ *  4. img alt text on the poster image
+ *  5. Visible heading text inside the card
  */
 function extractTitle(card) {
-  const dataTitle = card.getAttribute("data-card-title");
-  if (dataTitle) return parseTitle(dataTitle);
-
-  const link = card.querySelector("a[aria-label]");
-  if (link) {
-    const label = link.getAttribute("aria-label");
-    if (label) return parseTitle(label);
+  // Strategy 1: action element aria-label ("Title, Genre/Type")
+  const actionEl = card.querySelector("[data-testid='action']");
+  if (actionEl) {
+    const label =
+      actionEl.getAttribute("aria-label") ||
+      actionEl.getAttribute("title");
+    if (label && label.trim()) {
+      return parseTitle(label.split(",")[0].trim());
+    }
   }
 
+  // Strategy 2: dedicated title testid elements
+  const titleEl =
+    card.querySelector("[data-testid='title']") ||
+    card.querySelector("[data-testid='content-title']");
+  if (titleEl && titleEl.textContent.trim()) {
+    return parseTitle(titleEl.textContent.trim());
+  }
+
+  // Strategy 3: card is or contains an anchor with aria-label
+  const link = card.tagName === "A" ? card : card.querySelector("a[aria-label]");
+  if (link) {
+    const label = link.getAttribute("aria-label");
+    if (label && label.trim()) {
+      return parseTitle(label.split(",")[0].trim());
+    }
+  }
+
+  // Strategy 4: poster image alt text
   const img = card.querySelector("img[alt]");
   if (img) {
     const alt = img.getAttribute("alt");
@@ -130,6 +176,7 @@ function extractTitle(card) {
     }
   }
 
+  // Strategy 5: heading or element with "title" in its class name
   const heading = card.querySelector("h3, h4, [class*='title']");
   if (heading && heading.textContent.trim()) {
     return parseTitle(heading.textContent.trim());
