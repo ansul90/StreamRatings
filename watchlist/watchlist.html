@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamRatings — Watchlist</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+      background: #141414;
+      color: #e5e5e5;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ── Header ────────────────────────────────────────────────────────────── */
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-star {
+      color: #f5c518;
+      font-size: 22px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #e50914;
+      letter-spacing: 0.5px;
+    }
+
+    .header-subtitle {
+      font-size: 12px;
+      color: #666;
+      margin-left: 4px;
+    }
+
+    .header-count {
+      font-size: 12px;
+      font-weight: 600;
+      color: #f5c518;
+      background: rgba(245, 197, 24, 0.12);
+      border: 1px solid rgba(245, 197, 24, 0.3);
+      border-radius: 12px;
+      padding: 2px 10px;
+    }
+
+    /* ── Toolbar ───────────────────────────────────────────────────────────── */
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #555;
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    input[type="search"] {
+      width: 100%;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #e5e5e5;
+      font-size: 13px;
+      padding: 8px 10px 8px 32px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="search"]:focus {
+      border-color: #f5c518;
+    }
+
+    input[type="search"]::placeholder {
+      color: #555;
+    }
+
+    select {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #e5e5e5;
+      font-size: 13px;
+      padding: 8px 10px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    select:focus {
+      border-color: #f5c518;
+    }
+
+    button {
+      background: #f5c518;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    .btn-secondary {
+      background: #1e1e1e;
+      color: #aaa;
+      border: 1px solid #333;
+      font-weight: 600;
+    }
+
+    .btn-secondary:hover {
+      background: #2a2a2a;
+      color: #e5e5e5;
+      opacity: 1;
+    }
+
+    /* ── Empty / loading state ─────────────────────────────────────────────── */
+
+    .state-msg {
+      text-align: center;
+      padding: 60px 20px;
+      color: #444;
+    }
+
+    .state-msg .state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .state-msg p {
+      font-size: 15px;
+      color: #555;
+    }
+
+    .state-msg .state-hint {
+      font-size: 12px;
+      color: #3a3a3a;
+      margin-top: 8px;
+    }
+
+    /* ── Table ─────────────────────────────────────────────────────────────── */
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #222;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #1a1a1a;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #222;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th:hover {
+      color: #aaa;
+    }
+
+    th.sort-active {
+      color: #f5c518;
+    }
+
+    th .sort-arrow {
+      margin-left: 4px;
+      opacity: 0.6;
+      font-size: 9px;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #1e1e1e;
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: #1c1c1c;
+    }
+
+    td {
+      padding: 10px 14px;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    /* ── Table cell content ────────────────────────────────────────────────── */
+
+    .td-title {
+      font-weight: 600;
+      min-width: 180px;
+    }
+
+    .td-title a {
+      color: #e5e5e5;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .td-title a:hover {
+      color: #f5c518;
+    }
+
+    .td-meta {
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .rating-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .rating-chip.sr-green  { background: rgba(23, 135, 80, 0.9);  color: #fff; }
+    .rating-chip.sr-yellow { background: rgba(160, 140, 20, 0.9); color: #fff; }
+    .rating-chip.sr-red    { background: rgba(180, 30, 45, 0.9);  color: #fff; }
+    .rating-chip.sr-na     { background: rgba(80, 80, 80, 0.85);  color: #ccc; }
+
+    .rt-score {
+      font-size: 12px;
+      color: #e5e5e5;
+    }
+
+    .rt-score.rt-fresh  { color: #fa320a; }
+    .rt-score.rt-rotten { color: #7d7d7d; }
+
+    .platform-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: #222;
+      color: #888;
+      border: 1px solid #333;
+    }
+
+    .platform-badge.netflix  { color: #e50914; border-color: rgba(229,9,20,0.3); background: rgba(229,9,20,0.08); }
+    .platform-badge.prime    { color: #00a8e0; border-color: rgba(0,168,224,0.3); background: rgba(0,168,224,0.08); }
+    .platform-badge.hotstar  { color: #1a78fa; border-color: rgba(26,120,250,0.3); background: rgba(26,120,250,0.08); }
+    .platform-badge.sonyliv  { color: #f57920; border-color: rgba(245,121,32,0.3); background: rgba(245,121,32,0.08); }
+    .platform-badge.zee5     { color: #8b39cd; border-color: rgba(139,57,205,0.3); background: rgba(139,57,205,0.08); }
+
+    .td-date {
+      font-size: 11px;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .td-genre {
+      min-width: 120px;
+    }
+
+    .genre-chip {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #aaa;
+      margin: 1px 2px 1px 0;
+      white-space: nowrap;
+    }
+
+    .td-actions {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: #444;
+      font-size: 15px;
+      padding: 4px 6px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+
+    .remove-btn:hover {
+      color: #db2360;
+      background: rgba(219, 35, 96, 0.1);
+      opacity: 1;
+    }
+
+    /* ── Footer ────────────────────────────────────────────────────────────── */
+
+    .footer {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .result-count {
+      font-size: 12px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <span class="header-star">★</span>
+      <h1>StreamRatings</h1>
+      <span class="header-subtitle">Watchlist</span>
+    </div>
+    <span class="header-count" id="header-count">0 titles</span>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">&#128269;</span>
+      <input type="search" id="search-input" placeholder="Search titles…" />
+    </div>
+    <select id="sort-select">
+      <option value="date-desc">Recently Added</option>
+      <option value="date-asc">Oldest First</option>
+      <option value="rating-desc">Highest Rated</option>
+      <option value="rating-asc">Lowest Rated</option>
+      <option value="title-asc">Title A–Z</option>
+      <option value="title-desc">Title Z–A</option>
+    </select>
+    <select id="filter-platform">
+      <option value="">All Platforms</option>
+      <option value="netflix">Netflix</option>
+      <option value="prime">Prime Video</option>
+      <option value="hotstar">Hotstar</option>
+      <option value="sonyliv">SonyLIV</option>
+      <option value="zee5">Zee5</option>
+    </select>
+    <select id="filter-genre">
+      <option value="">All Genres</option>
+    </select>
+    <button class="btn-secondary" id="export-btn">Export CSV</button>
+  </div>
+
+  <div id="content">
+    <div class="state-msg">
+      <div class="state-icon">★</div>
+      <p>Loading your watchlist…</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <script src="watchlist.js"></script>
+</body>
+</html>

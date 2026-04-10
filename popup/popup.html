@@ -218,6 +218,45 @@
       background: #444;
       opacity: 1;
     }
+
+    /* ── Watchlist launcher ────────────────────────────────────────────────── */
+
+    .watchlist-section {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #333;
+    }
+
+    .watchlist-launch-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1e1e1e;
+      color: #e5e5e5;
+      border: 1px solid #333;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 5px;
+    }
+
+    .watchlist-launch-btn:hover {
+      background: #252525;
+      border-color: #f5c518;
+      color: #f5c518;
+      opacity: 1;
+    }
+
+    .watchlist-launch-count {
+      font-size: 10px;
+      font-weight: 700;
+      color: #f5c518;
+      background: rgba(245, 197, 24, 0.12);
+      border: 1px solid rgba(245, 197, 24, 0.3);
+      border-radius: 10px;
+      padding: 1px 7px;
+    }
   </style>
 </head>
 <body>
@@ -266,6 +305,13 @@
   <div class="cache-section">
     <p>Ratings are cached for 7 days to save API calls.</p>
     <button class="clear-btn" id="clear-cache-btn">Clear Rating Cache</button>
+  </div>
+
+  <div class="watchlist-section">
+    <button class="watchlist-launch-btn" id="open-watchlist-btn">
+      <span>★ My Watchlist</span>
+      <span class="watchlist-launch-count" id="watchlist-count">0</span>
+    </button>
   </div>
 
   <script src="popup.js"></script>

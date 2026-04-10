@@ -185,6 +185,49 @@
   color: #444;
 }
 
+/* ── Bookmark ribbon (top-left corner) ──────────────────────────────────────── */
+
+.sr-bookmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 28px 28px 0 0;
+  border-color: rgba(60, 60, 60, 0.7) transparent transparent transparent;
+  cursor: pointer;
+  z-index: 9999;
+  transition: border-color 0.2s ease;
+}
+
+.sr-bookmark:hover {
+  border-color: rgba(245, 197, 24, 0.85) transparent transparent transparent;
+}
+
+.sr-bookmark.sr-saved {
+  border-color: rgba(245, 197, 24, 0.9) transparent transparent transparent;
+}
+
+.sr-bookmark.sr-saved:hover {
+  border-color: rgba(219, 35, 96, 0.85) transparent transparent transparent;
+}
+
+.sr-bookmark-icon {
+  position: absolute;
+  top: -26px;
+  left: 2px;
+  font-size: 10px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  user-select: none;
+}
+
+.sr-bookmark.sr-saved .sr-bookmark-icon {
+  color: #141414;
+}
+
 /* ── Grey-out (below threshold) ────────────────────────────────────────────── */
 
 .sr-greyed-out {

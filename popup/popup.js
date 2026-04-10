@@ -99,6 +99,20 @@ clearCacheBtn.addEventListener("click", async () => {
   showStatus(`Cleared ${cacheKeys.length} cached ratings.`, "success");
 });
 
+// ── Watchlist launcher ────────────────────────────────────────────────────────
+
+const watchlistCount  = document.getElementById("watchlist-count");
+const openWatchlistBtn = document.getElementById("open-watchlist-btn");
+
+chrome.runtime.sendMessage({ type: "GET_WATCHLIST" }, (items) => {
+  const count = (items || []).length;
+  watchlistCount.textContent = count;
+});
+
+openWatchlistBtn.addEventListener("click", () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("watchlist/watchlist.html") });
+});
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function showStatus(message, type) {

@@ -388,6 +388,19 @@ async function getApiKey() {
   return result.omdbApiKey || null;
 }
 
+// ── Watchlist Helpers ─────────────────────────────────────────────────────────
+
+const WATCHLIST_KEY = "sr_watchlist";
+
+async function getWatchlist() {
+  const result = await chrome.storage.local.get(WATCHLIST_KEY);
+  return result[WATCHLIST_KEY] || [];
+}
+
+async function saveWatchlist(list) {
+  await chrome.storage.local.set({ [WATCHLIST_KEY]: list });
+}
+
 // ── API Key Validation & Threshold Relay (called from popup) ──────────────────
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -395,6 +408,45 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     validateApiKey(message.apiKey)
       .then(sendResponse)
       .catch(() => sendResponse({ valid: false }));
+    return true;
+  }
+
+  if (message.type === "TOGGLE_WATCHLIST") {
+    (async () => {
+      const list = await getWatchlist();
+      const idx = list.findIndex((e) => e.imdbID === message.entry.imdbID);
+      if (idx === -1) {
+        list.push({ ...message.entry, addedAt: Date.now() });
+        await saveWatchlist(list);
+        sendResponse({ saved: true });
+      } else {
+        list.splice(idx, 1);
+        await saveWatchlist(list);
+        sendResponse({ saved: false });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "CHECK_WATCHLIST") {
+    (async () => {
+      const list = await getWatchlist();
+      sendResponse({ saved: list.some((e) => e.imdbID === message.imdbID) });
+    })();
+    return true;
+  }
+
+  if (message.type === "GET_WATCHLIST") {
+    getWatchlist().then(sendResponse);
+    return true;
+  }
+
+  if (message.type === "REMOVE_FROM_WATCHLIST") {
+    (async () => {
+      const list = await getWatchlist();
+      await saveWatchlist(list.filter((e) => e.imdbID !== message.imdbID));
+      sendResponse({ ok: true });
+    })();
     return true;
   }
 

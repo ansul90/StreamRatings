@@ -55,6 +55,12 @@
     "default_popup": "popup/popup.html",
     "default_title": "StreamRatings Settings"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["watchlist/watchlist.html", "watchlist/watchlist.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "icons": {
     "16": "assets/icon16.png",
     "48": "assets/icon48.png",

@@ -211,12 +211,17 @@ async function fetchAndInjectRating(card, title, year) {
   if (!data) return;
 
   const rating = data.imdbRating;
-  if (!rating || rating === "N/A") return;
+  const hasRating = rating && rating !== "N/A";
 
-  card.setAttribute(RATING_DATA_ATTR, rating);
+  if (hasRating) {
+    card.setAttribute(RATING_DATA_ATTR, rating);
+  }
 
   injectBadges(card, data, title);
-  applyThresholdToCard(card);
+
+  if (hasRating) {
+    applyThresholdToCard(card);
+  }
 }
 
 function injectBadges(card, data, title) {
@@ -227,6 +232,8 @@ function injectBadges(card, data, title) {
 
   const wrapper = buildBadgeWrapper(data, title);
   card.appendChild(wrapper);
+
+  card.appendChild(buildBookmarkRibbon(data, title));
 }
 
 // ── Badge Builder ─────────────────────────────────────────────────────────────
@@ -238,6 +245,68 @@ function buildBadgeWrapper(data, title) {
   wrapper.appendChild(buildImdbBadge(data, title));
 
   return wrapper;
+}
+
+function buildBookmarkRibbon(data, title) {
+  const ribbon = document.createElement("div");
+  ribbon.className = "sr-bookmark";
+
+  const icon = document.createElement("span");
+  icon.className = "sr-bookmark-icon";
+  icon.textContent = "☆";
+  ribbon.appendChild(icon);
+
+  if (!data.imdbID) {
+    ribbon.title = "Rating not available";
+    ribbon.style.cursor = "default";
+    return ribbon;
+  }
+
+  ribbon.title = "Save to watchlist";
+
+  chrome.runtime.sendMessage(
+    { type: "CHECK_WATCHLIST", imdbID: data.imdbID },
+    (response) => {
+      if (response && response.saved) {
+        ribbon.classList.add("sr-saved");
+        icon.textContent = "★";
+        ribbon.title = "Remove from watchlist";
+      }
+    }
+  );
+
+  ribbon.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const entry = {
+      title,
+      imdbID: data.imdbID,
+      imdbRating: data.imdbRating,
+      tomatoMeter: data.tomatoMeter,
+      type: data.type,
+      year: data.year,
+      platform: "hotstar",
+      genre: data.genre,
+    };
+
+    const response = await chrome.runtime.sendMessage({
+      type: "TOGGLE_WATCHLIST",
+      entry,
+    });
+
+    if (response && response.saved) {
+      ribbon.classList.add("sr-saved");
+      icon.textContent = "★";
+      ribbon.title = "Remove from watchlist";
+    } else {
+      ribbon.classList.remove("sr-saved");
+      icon.textContent = "☆";
+      ribbon.title = "Save to watchlist";
+    }
+  });
+
+  return ribbon;
 }
 
 function buildImdbBadge(data, title) {

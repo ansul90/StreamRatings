@@ -15,6 +15,7 @@ A Chrome extension that overlays **IMDb scores** and **Rotten Tomatoes Tomatomet
 - **Hover tooltip** with star rating, vote count, and RT % details
 - **Quality threshold filter** — grey out cards below your chosen IMDb score (slider from 0–9 in 0.5 steps; 0 = off)
 - **7-day local cache** — avoids redundant API calls; clear anytime from the popup
+- **Watchlist** — save any title with the bookmark ribbon (top-left corner of each card); view, filter, and export from a full-page watchlist
 - **Works across five platforms:** Netflix, Prime Video, Hotstar, SonyLIV, Zee5
 
 ---
@@ -31,13 +32,14 @@ Content Script (MutationObserver)
        ▼
 Service Worker (background)
   ─ Checks chrome.storage.local cache (7-day TTL)
-  ─ Queries OMDb API  →  IMDb score + basic RT data
+  ─ Queries OMDb API  →  IMDb score, RT data, genre
   ─ Falls back to direct Rotten Tomatoes HTML fetch
-  ─ Returns { imdbRating, rtScore, imdbID, … }
+  ─ Returns { imdbRating, rtScore, imdbID, genre, … }
        │
        ▼
 Content Script
-  ─ Injects .sr-badge onto the card
+  ─ Injects .sr-badge onto the card (bottom-right)
+  ─ Injects bookmark ribbon onto the card (top-left)
   ─ Applies .sr-greyed-out if score < threshold
 ```
 
@@ -49,18 +51,21 @@ Content Script
 StreamRatings/
 ├── manifest.json                  # Chrome MV3 extension manifest
 ├── background/
-│   └── service-worker.js          # API fetching, caching, threshold broadcast
+│   └── service-worker.js          # API fetching, caching, watchlist storage, threshold broadcast
 ├── content/
-│   ├── netflix.js                 # Netflix DOM observer + badge injection
-│   ├── primevideo.js              # Prime Video DOM observer + badge injection
-│   ├── hotstar.js                 # Hotstar DOM observer + badge injection
-│   ├── sonyliv.js                 # SonyLIV DOM observer + badge injection
-│   └── zee5.js                    # Zee5 DOM observer + badge injection
+│   ├── netflix.js                 # Netflix DOM observer + badge + watchlist ribbon
+│   ├── primevideo.js              # Prime Video DOM observer + badge + watchlist ribbon
+│   ├── hotstar.js                 # Hotstar DOM observer + badge + watchlist ribbon
+│   ├── sonyliv.js                 # SonyLIV DOM observer + badge + watchlist ribbon
+│   └── zee5.js                    # Zee5 DOM observer + badge + watchlist ribbon
 ├── popup/
 │   ├── popup.html                 # Extension popup UI
-│   └── popup.js                   # Popup logic (API key, threshold, cache)
+│   └── popup.js                   # Popup logic (API key, threshold, cache, watchlist launcher)
+├── watchlist/
+│   ├── watchlist.html             # Full-page watchlist UI
+│   └── watchlist.js               # Watchlist logic (search, sort, filter, remove, CSV export)
 ├── styles/
-│   └── badge.css                  # Injected badge, tooltip, and grey-out styles
+│   └── badge.css                  # Injected badge, tooltip, bookmark ribbon, and grey-out styles
 ├── assets/
 │   ├── generate-icons.sh          # ImageMagick icon generation script
 │   ├── generate-icons.py          # Python icon generation script
@@ -131,6 +136,27 @@ StreamRatings uses the [OMDb API](https://www.omdbapi.com/) to fetch IMDb rating
 
 Open the popup and use the **IMDb Threshold** slider to automatically grey out titles below your chosen score. Set to **0** to disable filtering. Changes apply instantly to all open tabs without a page reload.
 
+### Watchlist
+
+Each card shows a small **bookmark ribbon** in the top-left corner:
+
+- **☆ (grey)** — title is not saved; click to save
+- **★ (gold)** — title is saved to your watchlist; click again to remove
+- Titles with no IMDb match show a static grey ribbon (not clickable)
+
+To view your watchlist, click **★ My Watchlist** in the popup. This opens a full-page tab with:
+
+| Feature | Details |
+|---|---|
+| Search | Live filter by title name |
+| Sort | By date added, IMDb rating, or title (A–Z) |
+| Filter by platform | Netflix, Prime Video, Hotstar, SonyLIV, Zee5 |
+| Filter by genre | Dynamically populated from your saved titles (e.g. Drama, Thriller, Comedy) |
+| Remove titles | Click ✕ on any row |
+| Export as CSV | Downloads all entries with title, year, type, genre, ratings, platform, and IMDb URL |
+
+Each saved entry stores: title, IMDb ID, IMDb rating, RT score, genre, type, year, platform, and date added.
+
 ### Clearing the Cache
 
 Ratings are cached for **7 days** to avoid hitting the API on every visit. To force a refresh, click **Clear Rating Cache** in the popup.
@@ -141,8 +167,8 @@ Ratings are cached for **7 days** to avoid hitting the API on every visit. To fo
 
 | Permission | Why it's needed |
 |---|---|
-| `storage` | Save your API key (`sync`) and the ratings cache (`local`) |
-| `tabs` | Find open streaming tabs to push threshold changes without a reload |
+| `storage` | Save your API key (`sync`), ratings cache (`local`), and watchlist (`local`) |
+| `tabs` | Find open streaming tabs to push threshold changes without a reload; open the watchlist page |
 | `https://www.omdbapi.com/*` | Fetch IMDb data from the OMDb API |
 | `https://www.rottentomatoes.com/*` | Fetch Rotten Tomatoes scores when OMDb doesn't include them |
 | Streaming site URLs | Inject content scripts and badge styles |
@@ -159,6 +185,8 @@ Ratings are cached for **7 days** to avoid hitting the API on every visit. To fo
 | "Invalid key" on save | Double-check the key from the OMDb email; make sure you clicked the activation link |
 | Extension not loading | Ensure **Developer mode** is on and you selected the root `StreamRatings/` folder, not a subfolder |
 | Badges disappeared after update | Go to `chrome://extensions`, find StreamRatings, and click the refresh icon |
+| Bookmark ribbon not showing | The card may have no data at all — confirm the badge also appears; if not, it's an API miss |
+| Genre filter is empty | Genre is saved when you bookmark a title; entries saved before this feature was added won't have genre data — remove and re-add them |
 
 ---
 
@@ -171,6 +199,7 @@ All settings are managed through the popup UI:
 | OMDb API Key | `chrome.storage.sync` | — | Required. Get one free at omdbapi.com |
 | IMDb Threshold | `chrome.storage.sync` | 0 (off) | Grey out cards with IMDb score below this value |
 | Rating Cache | `chrome.storage.local` | — | 7-day TTL; cleared via the popup button |
+| Watchlist | `chrome.storage.local` | — | Saved titles with ratings, genre, platform, and date |
 
 ---
 
@@ -180,6 +209,8 @@ All settings are managed through the popup UI:
 - Each content script uses a `MutationObserver` to handle SPA navigation without full page reloads
 - Hotstar, SonyLIV, and Zee5 include additional URL-change observers to handle client-side routing
 - The service worker handles OMDb fallback logic: primary `?t=` title lookup → Roman numeral retry → `?s=` search candidates; RT scores are fetched separately when missing
+- Watchlist entries are keyed by IMDb ID and stored as a single `sr_watchlist` array in `chrome.storage.local`
+- The watchlist page (`watchlist/watchlist.html`) is opened as a full Chrome tab via `chrome.runtime.getURL` and communicates with the service worker directly via `chrome.runtime.sendMessage`
 - No build step or bundler required — load directly as an unpacked extension
 
 ---
@@ -187,3 +218,4 @@ All settings are managed through the popup UI:
 ## License
 
 MIT
+
