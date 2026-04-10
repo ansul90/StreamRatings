@@ -147,7 +147,10 @@ function buildBadgeWrapper(data, title) {
   const wrapper = document.createElement("div");
   wrapper.className = "sr-badge-wrapper";
 
-  wrapper.appendChild(buildImdbBadge(data, title));
+  // Only inject the IMDb badge when there is a real rating to display
+  if (data.imdbRating && data.imdbRating !== "N/A") {
+    wrapper.appendChild(buildImdbBadge(data, title));
+  }
 
   return wrapper;
 }
