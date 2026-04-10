@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "StreamRatings",
   "version": "1.0.0",
-  "description": "Displays IMDB and Rotten Tomatoes ratings directly on Netflix, Prime Video, Hotstar, SonyLIV, and Zee5 movie/show cards.",
+  "description": "Overlay IMDb & Rotten Tomatoes ratings on Netflix, Prime Video, Hotstar, SonyLIV, and Zee5 cards. Grey out low-rated titles and save favourites to a local watchlist with genre and platform filters.",
   "permissions": [
     "storage",
     "tabs"

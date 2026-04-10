@@ -5,6 +5,8 @@ A Chrome extension that overlays **IMDb scores** and **Rotten Tomatoes Tomatomet
 ![Supported platforms: Netflix, Prime Video, Hotstar, SonyLIV, Zee5](https://img.shields.io/badge/Platforms-Netflix%20%7C%20Prime%20%7C%20Hotstar%20%7C%20SonyLIV%20%7C%20Zee5-blue)
 ![Manifest Version 3](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-green)
 
+**[Watch the demo on YouTube](https://youtu.be/zRWgxt8Z9MQ)**
+
 ---
 
 ## Features
