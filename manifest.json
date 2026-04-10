@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "StreamRatings",
   "version": "1.0.0",
-  "description": "Displays IMDB and Rotten Tomatoes ratings directly on Netflix, Prime Video, Hotstar, and SonyLIV movie/show cards.",
+  "description": "Displays IMDB and Rotten Tomatoes ratings directly on Netflix, Prime Video, Hotstar, SonyLIV, and Zee5 movie/show cards.",
   "permissions": [
     "storage",
     "tabs"
@@ -12,6 +12,7 @@
     "https://www.primevideo.com/*",
     "https://www.hotstar.com/*",
     "https://www.sonyliv.com/*",
+    "https://www.zee5.com/*",
     "https://www.omdbapi.com/*",
     "https://www.rottentomatoes.com/*"
   ],
@@ -40,6 +41,12 @@
     {
       "matches": ["https://www.sonyliv.com/*"],
       "js": ["content/sonyliv.js"],
+      "css": ["styles/badge.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.zee5.com/*"],
+      "js": ["content/zee5.js"],
       "css": ["styles/badge.css"],
       "run_at": "document_idle"
     }

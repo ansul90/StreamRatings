@@ -1,56 +1,40 @@
 /**
- * StreamRatings — SonyLIV Content Script
+ * StreamRatings — Zee5 Content Script
  *
  * Responsibilities:
- *  - Observe SonyLIV's dynamically rendered DOM for movie/show cards
+ *  - Observe Zee5's dynamically rendered DOM for movie/show cards
  *  - Extract titles from cards
  *  - Request ratings from the background service worker
  *  - Inject color-coded IMDb badge with hover tooltip onto each card
  *  - Grey-out cards below a user-defined IMDb rating threshold
  *
- * SonyLIV is a React SPA — navigating between pages does not reload the
+ * Zee5 is a React SPA — navigating between pages does not reload the
  * document. A second MutationObserver watches for URL changes and re-runs
  * card discovery after a short delay to let new content render.
  *
- * Card selectors are derived from real SonyLIV DOM structure. The site uses
- * stable CSS class names (portrait-link, trending-tray-link, etc.) on anchor
- * elements, which is more reliable than data-testid for this platform.
- *
- * Sports pages (/custompage/sports) contain no rateable content and are
- * skipped entirely to avoid unnecessary API calls.
+ * Card selectors use href patterns rather than class names because Zee5's
+ * React-generated class names are obfuscated and unstable across deployments.
+ * Zee5 content URLs follow stable patterns:
+ *   /movies/details/[title-slug]/[id]
+ *   /tvshows/details/[title-slug]/[id]
+ *   /zee5originals/details/[title-slug]/[id]
+ *   /kids/details/[title-slug]/[id]
  */
 
 // ── Card Selectors ────────────────────────────────────────────────────────────
 //
-// SonyLIV has two distinct page layouts:
-//
-// 1. My List / listing pages (/usercenter/mylist, /custompage/mylist-*):
-//    Cards are bare <a href="/movies/..." > or <a href="/shows/..."> anchors
-//    with no class, no aria-label, no title. The visible title text lives in
-//    the SIBLING div.show-container, not inside the anchor.
-//    Best approach: parse title from the href slug.
-//
-// 2. Home / movies / shows pages:
-//    Cards are <a class="portrait-link">, <a class="trending-tray-link">, etc.
-//    with aria-label or title attributes carrying the title.
+// href-based selectors are the most resilient for Zee5 because the URL
+// patterns are stable while CSS class names change with React builds.
+// Class-based selectors are added as supplementary coverage for layouts
+// where the anchor does not directly link to a content detail page.
 
 const CARD_SELECTORS = [
-  // My List and listing pages — bare anchors with no class
-  "div.innermylist a[href^='/movies']",
-  "div.innermylist a[href^='/shows']",
-  "div.mylist_contentData a[href^='/movies']",
-  "div.mylist_contentData a[href^='/shows']",
-  "div.listinpage_wrapper a[href^='/movies']",
-  "div.listinpage_wrapper a[href^='/shows']",
-  // Standard portrait/landscape/trending cards (home, movies, shows pages)
-  "a.trending-tray-link",
-  "a.portrait-link",
-  "a.landscape-link",
-  "a.multipurpose-portrait-link",
-  // Mobile web portrait tray cards
-  "a.link_container",
-  // Sony Originals block (search page)
-  "div.sonyliv-original-block-wrap",
+  "a[href*='/movies/details/']",
+  "a[href*='/tvshows/details/']",
+  "a[href*='/zee5originals/details/']",
+  "a[href*='/kids/details/']",
+  ".card-wrap a",
+  ".card__link",
 ];
 
 const BADGE_ATTR = "data-sr-injected";
@@ -88,7 +72,7 @@ observer.observe(document.body, {
 });
 
 // ── MutationObserver — SPA URL changes ───────────────────────────────────────
-// SonyLIV navigates without a full page reload. Watch for href changes and
+// Zee5 navigates without a full page reload. Watch for href changes and
 // re-process cards once new content has had time to render.
 
 let lastHref = location.href;
@@ -106,15 +90,7 @@ processNewCards();
 
 // ── Card Discovery ────────────────────────────────────────────────────────────
 
-/**
- * Returns all rateable card elements on the current page.
- * Sports pages are skipped — they contain live match tiles, not movies/shows.
- */
 function findCards() {
-  if (location.pathname.includes("/custompage/sports")) {
-    return [];
-  }
-
   const found = new Set();
   for (const selector of CARD_SELECTORS) {
     const cards = document.querySelectorAll(selector);
@@ -122,7 +98,6 @@ function findCards() {
       found.add(card);
     }
   }
-
   return found;
 }
 
@@ -145,62 +120,58 @@ function processNewCards() {
 // ── Title Extraction ──────────────────────────────────────────────────────────
 
 /**
- * Extracts the title from a SonyLIV card using multiple strategies.
+ * Extracts the title from a Zee5 card using multiple strategies.
  *
- * SonyLIV anchor elements expose the title via aria-label or title attributes.
- * Different card types (portrait, landscape, originals, search) each have a
- * slightly different DOM shape, so we try several fallbacks.
+ * Zee5 card anchors may carry aria-label/title on the element itself, or
+ * the title can be found in child elements or parsed from the href slug.
+ *
+ * Zee5 href format: /movies/details/love-story-2021/0-0-12345
+ * Title slug is the second-to-last path segment; strip the trailing
+ * year (4 digits) to get a clean title.
  */
 function extractTitle(card) {
-  // Strategy 1: sibling div.show-container holds the visible title text
-  // (My List page: <a href="/movies/..."> followed by <div class="show-container ...">)
-  const sibling = card.nextElementSibling;
-  if (sibling && sibling.classList.contains("show-container")) {
-    const text = sibling.textContent.trim();
-    if (text) return parseTitle(text);
-  }
-
-  // Strategy 2: aria-label on the card element (portrait/trending/landscape cards)
+  // Strategy 1: aria-label on the card anchor
   const ariaLabel = card.getAttribute("aria-label");
   if (ariaLabel && ariaLabel.trim()) {
     return parseTitle(ariaLabel.trim());
   }
 
-  // Strategy 3: title attribute on the card element
+  // Strategy 2: title attribute on the card anchor
   const titleAttr = card.getAttribute("title");
   if (titleAttr && titleAttr.trim()) {
     return parseTitle(titleAttr.trim());
   }
 
-  // Strategy 4: poster image title attribute (portrait/trending cards)
-  const imgWithTitle = card.querySelector("img[title]:not([title='Premium Icon'])");
-  if (imgWithTitle) {
-    const t = imgWithTitle.getAttribute("title");
-    if (t && t.trim()) return parseTitle(t.trim());
+  // Strategy 3: img alt text — skip if it looks like a URL or is generic
+  const img = card.querySelector("img[alt]");
+  if (img) {
+    const alt = img.getAttribute("alt");
+    if (alt && alt.trim() && !alt.startsWith("http") && alt.toLowerCase() !== "poster") {
+      return parseTitle(alt.trim());
+    }
   }
 
-  // Strategy 5: visible show title heading (landscape-link cards)
-  const showTitle = card.querySelector("h4.c-show-title");
-  if (showTitle && showTitle.textContent.trim()) {
-    return parseTitle(showTitle.textContent.trim());
+  // Strategy 4: element with "title" in its class name (common in Zee5 card layouts)
+  const titleEl = card.querySelector("[class*='title']");
+  if (titleEl && titleEl.textContent.trim()) {
+    return parseTitle(titleEl.textContent.trim());
   }
 
-  // Strategy 6: Sony Originals block heading (search page)
-  const originalsHeading = card.querySelector("div.sonyliv-original-right-sec > h2");
-  if (originalsHeading && originalsHeading.textContent.trim()) {
-    return parseTitle(originalsHeading.textContent.trim());
-  }
-
-  // Strategy 7: parse title from href slug — most reliable for listing pages
-  // e.g. /movies/love-story-1500004454 → "love story"
+  // Strategy 5: parse from href slug — most reliable universal fallback
+  // /movies/details/love-story-2021/0-0-12345 → second-to-last = "love-story-2021"
   const href = card.getAttribute("href");
   if (href) {
-    const slug = href.split("/").pop() || "";
-    const cleaned = slug
-      .replace(/-\d{7,}$/, "")  // strip trailing long numeric ID (≥7 digits)
-      .replace(/-/g, " ")
-      .trim();
-    if (cleaned) return parseTitle(cleaned);
+    const parts = href.split("/").filter(Boolean);
+    // Find the segment after "details"
+    const detailsIdx = parts.indexOf("details");
+    const slugSegment = detailsIdx >= 0 ? parts[detailsIdx + 1] : parts[parts.length - 2];
+    if (slugSegment) {
+      const cleaned = slugSegment
+        .replace(/-(\d{4})$/, "")  // strip trailing 4-digit year e.g. "-2021"
+        .replace(/-/g, " ")
+        .trim();
+      if (cleaned) return parseTitle(cleaned);
+    }
   }
 
   return null;
@@ -241,30 +212,12 @@ async function fetchAndInjectRating(card, title, year) {
 }
 
 function injectBadges(card, data, title) {
-  // For My List cards, the anchor only wraps the image div and has no
-  // position context by default. Make the inner image div the positioning
-  // parent so the badge overlays the thumbnail correctly.
-  const innerDiv = card.querySelector(
-    "div.listing-landscape-card-inner-div, div.mylist-landscape-card-main-div"
-  );
-  const positionTarget = innerDiv || card;
-
-  if (getComputedStyle(positionTarget).position === "static") {
-    positionTarget.style.position = "relative";
+  if (getComputedStyle(card).position === "static") {
+    card.style.position = "relative";
   }
 
   const wrapper = buildBadgeWrapper(data, title);
-
-  // Sony Originals blocks have a specific insertion point
-  if (card.matches("div.sonyliv-original-block-wrap")) {
-    const titleNode = card.querySelector("div.sonyliv-original-right-sec > h2");
-    if (titleNode) {
-      titleNode.insertAdjacentElement("afterend", wrapper);
-      return;
-    }
-  }
-
-  positionTarget.appendChild(wrapper);
+  card.appendChild(wrapper);
 }
 
 // ── Badge Builder ─────────────────────────────────────────────────────────────

@@ -405,6 +405,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         "https://www.primevideo.com/*",
         "https://www.hotstar.com/*",
         "https://www.sonyliv.com/*",
+        "https://www.zee5.com/*",
       ],
     }, (tabs) => {
       for (const tab of tabs) {
